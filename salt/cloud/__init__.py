@@ -501,7 +501,7 @@ class CloudClient(object):
             return mapper.do_action(names, kwargs)
 
         if provider and not names:
-            return mapper.do_function(provider, fun, kwargs)
+            return mapper.do_function(provider, fun, kwargs)['result']
         else:
             # This should not be called without either an instance or a
             # provider. If both an instance/list of names and a provider
@@ -1606,17 +1606,13 @@ class Cloud(object):
             self.clouds[fun],
             __active_provider_name__=':'.join([alias, driver])
         ):
-            if kwargs:
-                return {
-                    alias: {
-                        driver: self.clouds[fun](
-                            call='function', kwargs=kwargs
-                        )
-                    }
-                }
+            ret = self.clouds[fun](call='function', kwargs=kwargs)
             return {
-                alias: {
-                    driver: self.clouds[fun](call='function')
+                'failed': ret is False,
+                'result': {
+                    alias: {
+                        driver: ret
+                    }
                 }
             }
 

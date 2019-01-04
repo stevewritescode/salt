@@ -45,6 +45,8 @@ class SaltCloud(salt.utils.parsers.SaltCloudParser):
         # Parse shell arguments
         self.parse_args()
 
+        retcode = salt.defaults.exitcodes.EX_OK
+
         salt_master_user = self.config.get('user')
         if salt_master_user is None:
             salt_master_user = salt.utils.user.get_user()
@@ -267,9 +269,12 @@ class SaltCloud(salt.utils.parsers.SaltCloudParser):
                     'arguments: {0}'.format(args)
                 )
             try:
-                ret = mapper.do_function(
+                func_ret = mapper.do_function(
                     self.function_provider, self.function_name, kwargs
                 )
+                if func_ret['failed']:
+                    retcode = salt.defaults.exitcodes.EX_GENERIC
+                ret = func_ret['result']
             except (SaltCloudException, Exception) as exc:
                 msg = 'There was an error running the function: {0}'
                 self.handle_exception(msg, exc)
@@ -393,8 +398,9 @@ class SaltCloud(salt.utils.parsers.SaltCloudParser):
 
         salt.output.display_output(ret,
                                    self.options.output,
-                                   opts=self.config)
-        self.exit(salt.defaults.exitcodes.EX_OK)
+                                   opts=self.config,
+                                   _retcode=retcode)
+        self.exit(retcode)
 
     def print_confirm(self, msg):
         if self.options.assume_yes:
